@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SecureVault — Enterprise File Management</title>
+<style>
+
+   /* RESET & BASE */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#0f172a;color:#f1f5f9;font-size:14px}
+button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+input,textarea{font:inherit;color:inherit;border:none;background:none;outline:none}
+
+   /* CSS VARIABLES */
+:root{
+  --bg:       #0f172a;
+  --bg2:      #1e293b;
+  --bg3:      #334155;
+  --border:   #334155;
+  --border2:  #475569;
+  --purple:   #a855f7;
+  --purple2:  #7c3aed;
+  --purple-dim:rgba(168,85,247,0.15);
+  --red:      #ef4444;
+  --red-dim:  rgba(239,68,68,0.15);
+  --green:    #22c55e;
+  --green-dim:rgba(34,197,94,0.15);
+  --blue-dim: rgba(59,130,246,0.15);
+  --text:     #f1f5f9;
+  --text2:    #94a3b8;
+  --text3:    #64748b;
+  --sidebar:  260px;
+  --topbar:   64px;
+}
+
+   /* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+
+   /* ANIMATIONS */
+@keyframes fadeUp   {from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn   {from{opacity:0}to{opacity:1}}
+@keyframes slideIn  {from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse    {0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin     {to{transform:rotate(360deg)}}
+.fade-up  {animation:fadeUp  .5s ease both}
+.fade-in  {animation:fadeIn  .3s ease both}
+.slide-in {animation:slideIn .25s ease both}
+
+   /* LOGIN SCREEN */
+
+#login-screen{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;
+  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);
+}
+.login-card{width:100%;max-width:420px;padding:0 16px}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo svg{width:64px;height:64px;color:var(--purple);filter:drop-shadow(0 0 20px rgba(168,85,247,.5))}
+.login-logo h1{font-size:2rem;font-weight:700;margin-top:12px;letter-spacing:-.5px}
+.login-logo p{color:var(--text2);font-size:.85rem;margin-top:4px}
+.glow-box{
+  background:rgba(30,27,75,.4);
+  border:1px solid rgba(168,85,247,.3);
+  border-radius:12px;
+  padding:24px;
+  box-shadow:0 0 30px rgba(168,85,247,.15),inset 0 0 20px rgba(168,85,247,.05);
+}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{
+  width:100%;padding:11px 14px;
+  background:rgba(51,65,85,.5);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:.9rem;transition:border .2s,box-shadow .2s;
+}
+.form-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+.form-input::placeholder{color:var(--text3)}
+.btn-primary{
+  width:100%;padding:12px;margin-top:8px;
+  background:linear-gradient(135deg,var(--purple2),var(--purple));
+  border-radius:8px;font-weight:600;font-size:.95rem;
+  transition:opacity .2s,transform .1s;
+}
+.btn-primary:hover{opacity:.9}
+.btn-primary:active{transform:scale(.98)}
+.demo-creds{
+  margin-top:16px;background:rgba(30,41,59,.6);
+  border:1px solid var(--border);border-radius:10px;padding:14px;
+}
+.demo-creds p{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.demo-creds div{font-size:.8rem;color:var(--text2);line-height:1.8}
+.demo-creds strong{color:var(--purple)}
+
+
+   /* DASHBOARD LAYOUT */
+#app-screen{display:flex;flex-direction:column;height:100vh}
+#app-screen.hidden{display:none}
+#login-screen.hidden{display:none}
+
+/* TOP BAR */
+#topbar{
+  height:var(--topbar);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(15,23,42,.8);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(8px);z-index:40;
+}
+.topbar-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem}
+.topbar-brand svg{color:var(--purple)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.user-info{text-align:right}
+.user-info .role{font-weight:600;font-size:.9rem;text-transform:capitalize}
+.user-info .uname{font-size:.75rem;color:var(--text2)}
+.btn-logout{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:8px;font-size:.85rem;font-weight:500;
+  background:var(--red-dim);border:1px solid rgba(239,68,68,.4);color:#fca5a5;
+  transition:background .2s;
+}
+.btn-logout:hover{background:rgba(239,68,68,.25)}
+
+/* BODY */
+#body{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+#sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  display:flex;flex-direction:column;overflow:hidden;
+  background:linear-gradient(160deg,rgba(30,27,75,.4) 0%,rgba(15,23,42,.9) 100%);
+  border-right:1px solid var(--border);
+}
+#sidebar-scroll{flex:1;overflow-y:auto;padding:16px}
+.sidebar-section{margin-bottom:20px}
+
+/* Create file panel */
+.create-panel{
+  background:rgba(124,58,237,.1);border:1px solid rgba(168,85,247,.25);
+  border-radius:10px;padding:14px;margin-bottom:16px;
+}
+.create-panel h3{font-size:.8rem;font-weight:700;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.sidebar-input{
+  width:100%;padding:8px 10px;margin-bottom:8px;
+  background:rgba(51,65,85,.5);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-size:.8rem;
+}
+.sidebar-input:focus{border-color:var(--purple)}
+.sidebar-input::placeholder{color:var(--text3)}
+.sidebar-textarea{resize:none;height:60px}
+.btn-create{
+  width:100%;padding:8px;border-radius:6px;font-size:.8rem;font-weight:600;
+  background:var(--purple);transition:background .2s;
+}
+.btn-create:hover{background:var(--purple2)}
+
+/* Search */
+.search-wrap{position:relative;margin-bottom:12px}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)}
+.search-input{
+  width:100%;padding:8px 10px 8px 34px;
+  background:rgba(30,41,59,.6);border:1px solid var(--border);border-radius:8px;
+  font-size:.8rem;color:var(--text);
+}
+.search-input:focus{border-color:var(--purple)}
+.search-input::placeholder{color:var(--text3)}
+
+/* File list items */
+.files-label{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:0 4px;margin-bottom:6px}
+.file-item{
+  display:flex;flex-direction:column;padding:8px 10px;margin-bottom:4px;
+  border-radius:7px;border:1px solid transparent;cursor:pointer;
+  transition:background .15s,border-color .15s;
+}
+.file-item:hover{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.3)}
+.file-item.active{background:rgba(168,85,247,.15);border-color:rgba(168,85,247,.45)}
+.file-item-name{display:flex;align-items:center;gap:7px;font-size:.82rem;overflow:hidden}
+.file-item-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-item-name svg{flex-shrink:0;color:var(--purple)}
+.file-item-size{font-size:.7rem;color:var(--text3);margin-left:22px;margin-top:2px}
+
+/* Trash in sidebar */
+.trash-label{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:0 4px;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.trash-mini-item{background:rgba(30,41,59,.5);border:1px solid var(--border);border-radius:6px;padding:7px 10px;margin-bottom:4px}
+.trash-mini-name{font-size:.78rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trash-mini-date{font-size:.68rem;color:var(--text3);margin-top:2px}
+
+/* Storage bar */
+#storage-bar-wrap{padding:14px 16px;border-top:1px solid var(--border)}
+.storage-label{font-size:.72rem;font-weight:700;color:var(--text3);display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.storage-track{height:6px;background:rgba(51,65,85,.8);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.storage-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--purple));border-radius:3px;transition:width .4s}
+.storage-text{font-size:.72rem;color:var(--text2)}
+
+   /* MAIN CONTENT */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* TAB BAR */
+#tab-bar{
+  display:flex;gap:4px;padding:0 20px;
+  background:rgba(15,23,42,.6);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tab-btn{
+  display:flex;align-items:center;gap:6px;padding:14px 12px;
+  font-size:.82rem;font-weight:500;color:var(--text3);
+  border-bottom:2px solid transparent;transition:color .2s,border-color .2s;
+  white-space:nowrap;
+}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-btn svg{width:14px;height:14px}
+
+/* CONTENT AREA */
+#content-area{flex:1;overflow-y:auto;padding:24px}
+
+/* Panel: FILES */
+.panel{display:none}
+.panel.active{display:block}
+.panel-title{font-size:1.4rem;font-weight:700;margin-bottom:16px}
+.panel-subtitle{font-size:.8rem;color:var(--text2);margin-top:2px}
+
+/* File cards */
+.file-card{
+  background:rgba(30,41,59,.4);border:1px solid var(--border);
+  border-radius:10px;padding:16px;margin-bottom:12px;
+  transition:border-color .2s;
+}
+.file-card:hover{border-color:rgba(168,85,247,.4)}
+.file-card.selected{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.45)}
+.file-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.file-card-info{flex:1}
+.file-card-name{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:10px}
+.file-card-name svg{color:var(--purple)}
+.file-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.file-meta span{font-size:.74rem;color:var(--text2)}
+.file-meta .key{color:var(--text3)}
+.file-actions{display:flex;gap:6px;flex-shrink:0}
+.icon-btn{
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border-radius:7px;border:1px solid;transition:background .2s;
+}
+.icon-btn.view{background:var(--blue-dim);border-color:rgba(59,130,246,.4);color:#93c5fd}
+.icon-btn.view:hover{background:rgba(59,130,246,.25)}
+.icon-btn.delete{background:var(--red-dim);border-color:rgba(239,68,68,.4);color:#fca5a5}
+.icon-btn.delete:hover{background:rgba(239,68,68,.25)}
+.icon-btn.restore{background:var(--blue-dim);border-color:rgba(59,130,246,.4);color:#93c5fd}
+.icon-btn.restore:hover{background:rgba(59,130,246,.25)}
+.icon-btn.perma{background:var(--red-dim);border-color:rgba(239,68,68,.4);color:#fca5a5}
+.icon-btn.perma:hover{background:rgba(239,68,68,.25)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:64px 0;color:var(--text3)}
+.empty-state svg{width:56px;height:56px;margin:0 auto 12px;opacity:.35}
+.empty-state p{font-size:.9rem}
+
+/* Editor */
+.editor-path{font-size:.8rem;color:var(--text2);margin-bottom:16px}
+.editor-label{font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+.editor-textarea{
+  width:100%;height:360px;padding:14px;resize:vertical;
+  background:rgba(15,23,42,.8);border:1px solid var(--border);border-radius:8px;
+  font-family:'Courier New',monospace;font-size:.82rem;line-height:1.6;
+  color:var(--text);transition:border-color .2s;
+}
+.editor-textarea:focus{border-color:var(--purple)}
+.editor-actions{display:flex;gap:10px;margin-top:14px}
+.btn-save{
+  padding:10px 22px;border-radius:8px;font-weight:600;font-size:.85rem;
+  background:var(--purple);transition:background .2s,opacity .2s;
+}
+.btn-save:hover{background:var(--purple2)}
+.btn-save:disabled{opacity:.4;cursor:not-allowed}
+.btn-discard{
+  padding:10px 22px;border-radius:8px;font-weight:600;font-size:.85rem;
+  background:rgba(30,41,59,.8);border:1px solid var(--border);
+  transition:background .2s;
+}
+.btn-discard:hover{background:rgba(51,65,85,.6)}
+
+/* Versions */
+.version-card{
+  background:rgba(30,41,59,.4);border:1px solid var(--border);
+  border-radius:8px;padding:14px;margin-bottom:10px;
+}
+.version-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.version-badge{font-weight:600;font-size:.85rem}
+.version-ts{font-size:.72rem;color:var(--text3)}
+.version-by{font-size:.75rem;color:var(--text2);margin-bottom:8px}
+.version-preview{
+  background:rgba(15,23,42,.6);border-radius:6px;padding:10px;
+  font-family:'Courier New',monospace;font-size:.75rem;color:var(--text2);
+  max-height:80px;overflow:hidden;line-height:1.5;
+}
+
+/* Logs */
+.log-item{
+  border-radius:8px;padding:10px 14px;margin-bottom:6px;
+  border:1px solid var(--border);
+  background:rgba(30,41,59,.3);
+}
+.log-item.error{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.25)}
+.log-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.log-action{font-family:monospace;font-weight:700;font-size:.8rem;color:var(--purple)}
+.log-item.error .log-action{color:#f87171}
+.log-user{font-size:.78rem;color:var(--text2);margin-left:10px}
+.log-ts{font-size:.72rem;color:var(--text3)}
+.log-detail{font-size:.75rem;color:var(--text3)}
+
+/* Settings grid */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.stat-card{
+  background:rgba(15,23,42,.6);border:1px solid var(--border);
+  border-radius:8px;padding:16px;
+}
+.stat-card .label{font-size:.72rem;color:var(--text3);margin-bottom:6px}
+.stat-card .value{font-size:1.8rem;font-weight:700}
+.settings-section{
+  background:rgba(30,41,59,.4);border:1px solid var(--border);
+  border-radius:10px;padding:20px;margin-bottom:16px;
+}
+.settings-section h3{font-weight:600;font-size:.9rem;color:var(--purple);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.user-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(15,23,42,.5);border-radius:7px;padding:10px 14px;margin-bottom:6px;
+}
+.user-row .uname{font-weight:600;font-size:.85rem}
+.user-row .urole{font-size:.72rem;color:var(--text2);text-transform:capitalize;margin-top:2px}
+.user-row .udate{font-size:.72rem;color:var(--text3)}
+.role-badge{
+  display:inline-block;padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;margin-top:4px;
+}
+.role-badge.admin  {background:rgba(168,85,247,.2);color:var(--purple)}
+.role-badge.teacher{background:rgba(59,130,246,.2);color:#93c5fd}
+.role-badge.student{background:rgba(34,197,94,.2);color:#86efac}
+
+   /* TOAST NOTIFICATIONS */
+
+#toast-container{
+  position:fixed;bottom:24px;right:24px;z-index:1000;
+  display:flex;flex-direction:column;gap:8px;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 18px;border-radius:10px;
+  backdrop-filter:blur(8px);border:1px solid;font-size:.85rem;font-weight:500;
+  animation:fadeUp .3s ease;min-width:220px;max-width:340px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.toast.success{background:var(--green-dim);border-color:rgba(34,197,94,.4);color:#86efac}
+.toast.error  {background:var(--red-dim)  ;border-color:rgba(239,68,68,.4) ;color:#fca5a5}
+.toast svg{flex-shrink:0}
+
+
+   /* LOADING OVERLAY */
+#loading{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(15,23,42,.7);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+#loading.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin .6s linear infinite}
+
+   /* SVG ICONS (inline) */
+
+.icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+</style>
+
+</head>
+<body>
+
+<!--  LOADING  -->
+<div id="loading"><div class="spinner"></div></div>
+
+<!--  TOAST  -->
+<div id="toast-container"></div>
+
+<!--] LOGIN -->
+<div id="login-screen">
+  <div class="login-card fade-up">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <h1>SecureVault</h1>
+      <p>Enterprise File Management System</p>
+    </div>
+
+    <div class="glow-box">
+      <div class="form-group">
+        <label>Username</label>
+        <input class="form-input" id="login-user" type="text" placeholder="admin / student / teacher" autocomplete="off" />
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Password</label>
+        <input class="form-input" id="login-pass" type="password" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" id="login-btn" style="margin-top:16px">Sign In</button>
+    </div>
+
+    <div class="demo-creds">
+      <p>Demo Credentials</p>
+      <div><strong>Admin</strong> — admin / admin123</div>
+      <div><strong>Teacher</strong> — teacher / teacher123</div>
+      <div><strong>Student</strong> — student / student123</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP  -->
+<div id="app-screen" class="hidden">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="topbar-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      SecureVault
+    </div>
+    <div class="topbar-right">
+      <div class="user-info">
+        <div class="role" id="top-role"></div>
+        <div class="uname" id="top-user"></div>
+      </div>
+      <button class="btn-logout" id="logout-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Logout
+      </button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div id="sidebar-scroll">
+
+        <!-- Create File -->
+        <div class="create-panel" id="create-panel">
+          <h3>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New File
+          </h3>
+          <input class="sidebar-input" id="new-file-name" type="text" placeholder="filename.txt" />
+          <textarea class="sidebar-input sidebar-textarea" id="new-file-content" placeholder="File content..."></textarea>
+          <button class="btn-create" id="create-file-btn">Create</button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input class="search-input" id="search-input" type="text" placeholder="Search files…" />
+        </div>
+
+        <!-- File list -->
+        <div class="files-label" id="files-count-label">Files (0)</div>
+        <div id="sidebar-files"></div>
+
+        <!-- Trash mini -->
+        <div id="trash-section" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:none">
+          <div class="trash-label">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Trash (<span id="trash-count">0</span>)
+          </div>
+          <div id="sidebar-trash"></div>
+        </div>
+
+      </div>
+
+      <!-- Storage Bar -->
+      <div id="storage-bar-wrap">
+        <div class="storage-label">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+          Storage
+        </div>
+        <div class="storage-track"><div class="storage-fill" id="storage-fill" style="width:0%"></div></div>
+        <div class="storage-text" id="storage-text">0 / 1000 KB</div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div id="main">
+
+      <!-- TAB BAR -->
+      <div id="tab-bar">
+        <button class="tab-btn active" data-tab="files">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Files
+        </button>
+        <button class="tab-btn" data-tab="editor" id="tab-editor" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Editor
+        </button>
+        <button class="tab-btn" data-tab="versions" id="tab-versions" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Versions
+        </button>
+        <button class="tab-btn" data-tab="logs" id="tab-logs" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Activity Log
+        </button>
+        <button class="tab-btn" data-tab="trash" id="tab-trash" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/><path d="M9 6V4h6v2"/></svg>
+          Trash
+        </button>
+        <button class="tab-btn" data-tab="settings" id="tab-settings" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </div>
+
+      <!-- CONTENT -->
+      <div id="content-area">
+
+        <!-- FILES PANEL -->
+        <div class="panel active" id="panel-files">
+          <div class="panel-title">File Management</div>
+          <div id="files-grid"></div>
+        </div>
+
+        <!-- EDITOR PANEL -->
+        <div class="panel" id="panel-editor">
+          <div class="panel-title" id="editor-title">Editor</div>
+          <div class="editor-path" id="editor-path"></div>
+          <label class="editor-label">Content</label>
+          <textarea class="editor-textarea" id="editor-area"></textarea>
+          <div class="editor-actions">
+            <button class="btn-save" id="save-btn">Save Changes</button>
+            <button class="btn-discard" id="discard-btn">Discard</button>
+          </div>
+        </div>
+
+        <!-- VERSIONS PANEL -->
+        <div class="panel" id="panel-versions">
+          <div class="panel-title">Version History</div>
+          <div class="panel-subtitle" id="versions-subtitle"></div>
+          <div id="versions-list" style="margin-top:16px"></div>
+        </div>
+
+        <!-- LOGS PANEL -->
+        <div class="panel" id="panel-logs">
+          <div class="panel-title">Activity Log</div>
+          <div class="panel-subtitle" id="logs-subtitle"></div>
+          <div id="logs-list" style="margin-top:16px"></div>
+        </div>
+
+        <!-- TRASH PANEL -->
+        <div class="panel" id="panel-trash">
+          <div class="panel-title">Trash Bin</div>
+          <div class="panel-subtitle" id="trash-subtitle"></div>
+          <div id="trash-list" style="margin-top:16px"></div>
+        </div>
+
+        <!-- SETTINGS PANEL -->
+        <div class="panel" id="panel-settings">
+          <div class="panel-title">System Settings</div>
+          <div class="stat-grid" id="stat-grid"></div>
+          <div class="settings-section">
+            <h3>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              System Users
+            </h3>
+            <div id="users-list"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ JAVASCRIPT ══════════════ -->
+<script>
+/* ─────────────────────────────────────────────
+   CONFIG — point to your Python backend
+   If running without backend, set USE_MOCK=true
+───────────────────────────────────────────── */
+const API_BASE  = "http://localhost:5000/api";
+const USE_MOCK  = true; // ← set false when Python server is running
+
+/* ─────────────────────────────────────────────
+   MOCK BACKEND (mirrors server.py in-memory)
+───────────────────────────────────────────── */
+const Mock = (() => {
+  const USERS = {
+    admin:   { id:"admin",   username:"admin",   password:"admin123",   role:"admin",   permissions:["read","write","delete","manage_users","view_logs"], allowed_dirs:["/home","/data","/system"] },
+    teacher: { id:"teacher", username:"teacher", password:"teacher123", role:"teacher", permissions:["read","write","delete","view_logs"],               allowed_dirs:["/home/teacher","/data"]    },
+    student: { id:"student", username:"student", password:"student123", role:"student", permissions:["read","write"],                                    allowed_dirs:["/home/student"]            },
+  };
+  let FILES={}, TRASH={}, VERSIONS={}, LOGS=[], SESSIONS={};
+
+  function mkId(){ return Math.random().toString(36).slice(2) }
+  function now()  { return new Date().toLocaleString() }
+  function ts()   { return Date.now() }
+  function canAccess(u,path){ return u.allowed_dirs.some(d=>path.startsWith(d)) }
+  function log(action,user,details){ LOGS.unshift({id:mkId(),action,user,details,timestamp:now(),ip:"127.0.0.1"}) }
+  function createF(owner,path,content){
+    const id=mkId();
+    FILES[id]={id,path,name:path.split("/").pop(),content,owner,
+      created_at:now(),modified_at:now(),size:content.length,deleted:false,inode:Math.floor(Math.random()*999999)};
+    VERSIONS[id]=[{version:1,content,timestamp:now(),user:owner}];
+  }
+  // Seed
+  createF("admin","/home/admin/welcome.txt","Welcome to SecureVault!");
+  createF("admin","/home/admin/notes.txt","Important system notes here.");
+  createF("admin","/data/config.json",'{"system":"active","version":"1.0"}');
+  createF("teacher","/home/teacher/lesson.txt","Lesson plan for this week.");
+  createF("student","/home/student/homework.txt","My homework notes.");
+
+  return {
+    login(u,p){
+      const user=USERS[u];
+      if(!user||user.password!==p){log("LOGIN_FAILED",u,"Invalid credentials");return{success:false,error:"Invalid credentials"}}
+      const token=mkId();
+      const sess={token,username:user.username,role:user.role,permissions:user.permissions,allowed_dirs:user.allowed_dirs};
+      SESSIONS[token]=sess;
+      log("LOGIN_SUCCESS",u,`Logged in as ${user.role}`);
+      return{success:true,token,user:{username:user.username,role:user.role,permissions:user.permissions,allowed_dirs:user.allowed_dirs}};
+    },
+    logout(token,username){delete SESSIONS[token];log("LOGOUT",username,"User logged out");return{success:true}},
+    getSession(token){return SESSIONS[token]||null},
+    listFiles(username){
+      const u=USERS[username];
+      return Object.values(FILES).filter(f=>!f.deleted&&canAccess(u,f.path)).map(f=>({...f,content:undefined}));
+    },
+    createFile(username,path,content){
+      const u=USERS[username];
+      if(!canAccess(u,path)){log("CREATE_FAILED",username,"Access denied");return{success:false,error:"Access denied"}}
+      createF(username,path,content);
+      log("FILE_CREATE",username,`Created: ${path}`);
+      return{success:true};
+    },
+    readFile(username,fid){
+      const f=FILES[fid];
+      if(!f)return{success:false,error:"File not found"};
+      if(f.deleted)return{success:false,error:"File deleted"};
+      const u=USERS[username];
+      if(!canAccess(u,f.path)){log("READ_FAILED",username,"Access denied");return{success:false,error:"Access denied"}}
+      log("FILE_READ",username,`Read: ${f.path}`);
+      return{success:true,file:f};
+    },
+    writeFile(username,fid,content){
+      const f=FILES[fid];
+      if(!f||f.deleted)return{success:false,error:"File not found"};
+      const u=USERS[username];
+      if(!canAccess(u,f.path))return{success:false,error:"Access denied"};
+      const vers=VERSIONS[fid]||[];
+      vers.push({version:(vers[vers.length-1]?.version||0)+1,content:f.content,timestamp:now(),user:username});
+      VERSIONS[fid]=vers;
+      f.content=content;f.modified_at=now();f.size=content.length;
+      log("FILE_WRITE",username,`Modified: ${f.path}`);
+      return{success:true,version_count:vers.length};
+    },
+    deleteFile(username,fid){
+      const f=FILES[fid];
+      if(!f)return{success:false,error:"Not found"};
+      f.deleted=true;f.deleted_at=now();f.deleted_by=username;TRASH[fid]=f;
+      log("FILE_DELETE",username,`Soft-deleted: ${f.path}`);
+      return{success:true};
+    },
+    restoreFile(username,fid){
+      const f=TRASH[fid];
+      if(!f)return{success:false,error:"Not in trash"};
+      f.deleted=false;delete f.deleted_at;delete f.deleted_by;delete TRASH[fid];
+      log("FILE_RESTORE",username,`Restored: ${f.path}`);
+      return{success:true};
+    },
+    permanentDelete(username,fid){
+      delete FILES[fid];delete TRASH[fid];delete VERSIONS[fid];
+      log("FILE_PERMANENT_DELETE",username,"Permanently deleted");
+      return{success:true};
+    },
+    getVersions(fid){return{success:true,versions:VERSIONS[fid]||[]}},
+    listTrash(){return Object.values(TRASH).map(f=>({...f,content:undefined}))},
+    getLogs(){return LOGS},
+    listUsers(){return Object.values(USERS).map(u=>({...u,password:undefined}))},
+    systemStatus(){
+      const files=Object.values(FILES).filter(f=>!f.deleted);
+      return{success:true,total_files:files.length,trash_count:Object.keys(TRASH).length,
+             log_count:LOGS.length,user_count:Object.keys(USERS).length,
+             total_size:files.reduce((s,f)=>s+f.size,0)};
+    },
+  };
+})();
+
+/* ─────────────────────────────────────────────
+   API LAYER — toggles between mock and real
+───────────────────────────────────────────── */
+let _token = null;
+const headers = () => ({"Content-Type":"application/json","X-Session-Token":_token||""});
+
+async function api(method, path, body){
+  if(USE_MOCK) return mockCall(method, path, body);
+  const opts={method,headers:headers()};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(API_BASE+path,opts);
+  return r.json();
+}
+
+function mockCall(method,path,body){
+  const sess = _token ? Mock.getSession(_token) : null;
+  const username = sess?.username;
+
+  if(path==="/auth/login"&&method==="POST") return Mock.login(body.username,body.password);
+  if(path==="/auth/logout"&&method==="POST"){ const r=Mock.logout(_token,username);_token=null;return r; }
+  if(path==="/files"&&method==="GET") return{success:true,files:Mock.listFiles(username)};
+  if(path==="/files/create"&&method==="POST") return Mock.createFile(username,body.path,body.content);
+  if(path.match(/\/files\/(.+)\/read/)&&method==="GET") return Mock.readFile(username,path.split("/")[2]);
+  if(path.match(/\/files\/(.+)\/write/)&&method==="POST") return Mock.writeFile(username,path.split("/")[2],body.content);
+  if(path.match(/\/files\/(.+)\/versions/)&&method==="GET") return Mock.getVersions(path.split("/")[2]);
+  if(path.match(/\/files\/(.+)\/restore/)&&method==="POST") return Mock.restoreFile(username,path.split("/")[2]);
+  if(path.match(/\/files\/(.+)\/permanent/)&&method==="DELETE") return Mock.permanentDelete(username,path.split("/")[2]);
+  if(path.match(/\/files\/(.+)$/)&&method==="DELETE") return Mock.deleteFile(username,path.split("/")[2]);
+  if(path==="/trash"&&method==="GET") return{success:true,trash:Mock.listTrash()};
+  if(path==="/logs"&&method==="GET") return{success:true,logs:Mock.getLogs()};
+  if(path==="/users"&&method==="GET") return{success:true,users:Mock.listUsers()};
+  if(path==="/system/status"&&method==="GET") return Mock.systemStatus();
+  return{success:false,error:"Unknown route"};
+}
+
+/* ─────────────────────────────────────────────
+   APP STATE
+───────────────────────────────────────────── */
+let currentUser = null;
+let files       = [];
+let trashItems  = [];
+let selectedFile= null;
+let versions    = [];
+let originalContent = "";
+
+/* ─────────────────────────────────────────────
+   HELPERS
+───────────────────────────────────────────── */
+function show(id){ document.getElementById(id).classList.remove("hidden") }
+function hide(id){ document.getElementById(id).classList.add("hidden") }
+function showLoading(){ document.getElementById("loading").classList.add("show") }
+function hideLoading(){ document.getElementById("loading").classList.remove("show") }
+
+function toast(msg, type="success"){
+  const t=document.createElement("div");
+  t.className=`toast ${type}`;
+  const icon = type==="success"
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+  t.innerHTML=icon+`<span>${msg}</span>`;
+  document.getElementById("toast-container").appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+function svgFile(){
+  return`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+}
+
+function fmt(bytes){
+  if(bytes<1024) return bytes+" B";
+  return (bytes/1024).toFixed(1)+" KB";
+}
+
+/* ─────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────── */
+function switchTab(tabId){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===tabId));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id==="panel-"+tabId));
+  if(tabId==="logs") loadLogs();
+  if(tabId==="trash") renderTrash();
+  if(tabId==="settings") loadSettings();
+}
+document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+
+/* ─────────────────────────────────────────────
+   LOGIN
+───────────────────────────────────────────── */
+async function doLogin(){
+  const user=document.getElementById("login-user").value.trim();
+  const pass=document.getElementById("login-pass").value;
+  if(!user||!pass){toast("Enter credentials","error");return}
+  showLoading();
+  const r=await api("POST","/auth/login",{username:user,password:pass});
+  hideLoading();
+  if(r.success){
+    _token=r.token;
+    currentUser=r.user;
+    setupDashboard();
+    hide("login-screen");
+    show("app-screen");
+    toast(`Welcome, ${r.user.role}!`);
+    await loadFiles();
+  } else {
+    toast(r.error||"Login failed","error");
+  }
+}
+document.getElementById("login-btn").addEventListener("click",doLogin);
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&!document.getElementById("login-screen").classList.contains("hidden"))doLogin()});
+
+/* ─────────────────────────────────────────────
+   LOGOUT
+───────────────────────────────────────────── */
+document.getElementById("logout-btn").addEventListener("click",async()=>{
+  await api("POST","/auth/logout");
+  currentUser=null;selectedFile=null;files=[];trashItems=[];
+  hide("app-screen");show("login-screen");
+  document.getElementById("login-user").value="";
+  document.getElementById("login-pass").value="";
+  toast("Logged out");
+});
+
+/* ─────────────────────────────────────────────
+   SETUP DASHBOARD (role-based tabs)
+───────────────────────────────────────────── */
+function setupDashboard(){
+  document.getElementById("top-role").textContent=currentUser.role;
+  document.getElementById("top-user").textContent="@ "+currentUser.username;
+
+  const perms=currentUser.permissions;
+  document.getElementById("tab-logs").style.display=perms.includes("view_logs")?"":"none";
+  document.getElementById("tab-trash").style.display=perms.includes("delete")?"":"none";
+  document.getElementById("tab-settings").style.display=currentUser.role==="admin"?"":"none";
+  document.getElementById("create-panel").style.display=perms.includes("write")?"":"none";
+  switchTab("files");
+}
+
+/* ─────────────────────────────────────────────
+   FILES
+───────────────────────────────────────────── */
+async function loadFiles(){
+  const r=await api("GET","/files");
+  if(r.success){ files=r.files; renderFiles(); updateStorage(); }
+}
+
+function filterFiles(){
+  const q=document.getElementById("search-input").value.toLowerCase();
+  return q?files.filter(f=>f.name.toLowerCase().includes(q)):files;
+}
+
+document.getElementById("search-input").addEventListener("input",()=>{renderFiles();renderSidebar()});
+
+function renderSidebar(){
+  const list=filterFiles();
+  document.getElementById("files-count-label").textContent=`Files (${list.length})`;
+  const wrap=document.getElementById("sidebar-files");
+  wrap.innerHTML="";
+  if(!list.length){ wrap.innerHTML=`<p style="font-size:.78rem;color:var(--text3);padding:8px 4px">No files found</p>`; return; }
+  list.forEach(f=>{
+    const el=document.createElement("div");
+    el.className="file-item slide-in"+(selectedFile?.id===f.id?" active":"");
+    el.innerHTML=`<div class="file-item-name">${svgFile()}<span>${f.name}</span></div><div class="file-item-size">${fmt(f.size||0)}</div>`;
+    el.addEventListener("click",()=>readFile(f.id));
+    wrap.appendChild(el);
+  });
+}
+
+function renderFiles(){
+  renderSidebar();
+  const list=filterFiles();
+  const grid=document.getElementById("files-grid");
+  grid.innerHTML="";
+  if(!list.length){
+    grid.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><p>No files found. Create one to get started.</p></div>`;
+    return;
+  }
+  const perms=currentUser.permissions;
+  list.forEach(f=>{
+    const card=document.createElement("div");
+    card.className="file-card"+(selectedFile?.id===f.id?" selected":"");
+    card.innerHTML=`
+      <div class="file-card-header">
+        <div class="file-card-info">
+          <div class="file-card-name">${svgFile()}<span>${f.name}</span></div>
+          <div class="file-meta">
+            <span><span class="key">Path: </span>${f.path}</span>
+            <span><span class="key">Size: </span>${f.size||0} bytes</span>
+            <span><span class="key">Owner: </span>${f.owner}</span>
+            <span><span class="key">Inode: </span>${f.inode||"—"}</span>
+            <span><span class="key">Modified: </span>${f.modified_at}</span>
+          </div>
+        </div>
+        <div class="file-actions">
+          <button class="icon-btn view" title="Read file" data-id="${f.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          ${perms.includes("delete")?`<button class="icon-btn delete" title="Delete" data-id="${f.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>`:""}
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll(".icon-btn.view").forEach(b=>b.addEventListener("click",()=>readFile(b.dataset.id)));
+  grid.querySelectorAll(".icon-btn.delete").forEach(b=>b.addEventListener("click",()=>deleteFile(b.dataset.id)));
+}
+
+async function readFile(id){
+  const r=await api("GET",`/files/${id}/read`);
+  if(!r.success){toast(r.error,"error");return}
+  selectedFile=r.file;
+  originalContent=r.file.content;
+  document.getElementById("editor-title").textContent=`Editing: ${r.file.name}`;
+  document.getElementById("editor-path").textContent=r.file.path;
+  document.getElementById("editor-area").value=r.file.content;
+  document.getElementById("tab-editor").style.display="";
+
+  const vr=await api("GET",`/files/${id}/versions`);
+  versions=vr.success?vr.versions:[];
+  if(versions.length>0) document.getElementById("tab-versions").style.display="";
+
+  renderFiles();renderSidebar();
+  toast("File loaded");
+  switchTab("editor");
+}
+
+async function deleteFile(id){
+  if(!confirm("Move this file to trash?"))return;
+  const r=await api("DELETE",`/files/${id}`);
+  if(r.success){
+    toast("File moved to trash");
+    if(selectedFile?.id===id){selectedFile=null;document.getElementById("tab-editor").style.display="none";document.getElementById("tab-versions").style.display="none";}
+    await loadFiles();
+    await loadTrash();
+  } else toast(r.error,"error");
+}
+
+/* ─────────────────────────────────────────────
+   CREATE FILE
+───────────────────────────────────────────── */
+document.getElementById("create-file-btn").addEventListener("click",async()=>{
+  const name=document.getElementById("new-file-name").value.trim();
+  const content=document.getElementById("new-file-content").value.trim();
+  if(!name||!content){toast("Name and content required","error");return}
+  const path=`${currentUser.allowed_dirs[0]}/${name}`;
+  const r=await api("POST","/files/create",{path,content});
+  if(r.success){
+    toast("File created!");
+    document.getElementById("new-file-name").value="";
+    document.getElementById("new-file-content").value="";
+    await loadFiles();
+  } else toast(r.error,"error");
+});
+
+/* ─────────────────────────────────────────────
+   EDITOR — SAVE / DISCARD
+───────────────────────────────────────────── */
+document.getElementById("save-btn").addEventListener("click",async()=>{
+  if(!selectedFile){toast("No file selected","error");return}
+  const content=document.getElementById("editor-area").value;
+  const r=await api("POST",`/files/${selectedFile.id}/write`,{content});
+  if(r.success){
+    originalContent=content;
+    toast(`Saved (v${r.version_count})`);
+    await loadFiles();
+    const vr=await api("GET",`/files/${selectedFile.id}/versions`);
+    versions=vr.success?vr.versions:[];
+    renderVersions();
+  } else toast(r.error,"error");
+});
+
+document.getElementById("discard-btn").addEventListener("click",()=>{
+  document.getElementById("editor-area").value=originalContent;
+  toast("Changes discarded");
+});
+
+/* ─────────────────────────────────────────────
+   VERSIONS
+───────────────────────────────────────────── */
+function renderVersions(){
+  const list=[...versions].reverse();
+  document.getElementById("versions-subtitle").textContent=`Total versions: ${list.length}`;
+  const wrap=document.getElementById("versions-list");
+  wrap.innerHTML="";
+  list.forEach(v=>{
+    const el=document.createElement("div");
+    el.className="version-card fade-in";
+    el.innerHTML=`
+      <div class="version-header">
+        <span class="version-badge">Version ${v.version}</span>
+        <span class="version-ts">${v.timestamp}</span>
+      </div>
+      <div class="version-by">By: ${v.user}</div>
+      <div class="version-preview">${(v.content||"").substring(0,200)}${v.content?.length>200?"…":""}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+document.querySelector('[data-tab="versions"]').addEventListener("click",renderVersions);
+
+/* ─────────────────────────────────────────────
+   LOGS
+───────────────────────────────────────────── */
+async function loadLogs(){
+  const r=await api("GET","/logs");
+  if(!r.success){toast(r.error,"error");return}
+  const logs=r.logs;
+  document.getElementById("logs-subtitle").textContent=`Total events: ${logs.length}`;
+  const wrap=document.getElementById("logs-list");
+  wrap.innerHTML="";
+  if(!logs.length){wrap.innerHTML=`<div class="empty-state"><p>No activity logged yet</p></div>`;return}
+  logs.forEach(l=>{
+    const el=document.createElement("div");
+    el.className="log-item fade-in"+(l.action.includes("FAILED")?" error":"");
+    el.innerHTML=`
+      <div class="log-header">
+        <div><span class="log-action">${l.action}</span><span class="log-user">• ${l.user}</span></div>
+        <span class="log-ts">${l.timestamp}</span>
+      </div>
+      <div class="log-detail">${l.details}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   TRASH
+───────────────────────────────────────────── */
+async function loadTrash(){
+  const r=await api("GET","/trash");
+  if(r.success) trashItems=r.trash||[];
+  renderTrashSidebar();
+}
+
+function renderTrashSidebar(){
+  const sec=document.getElementById("trash-section");
+  const wrap=document.getElementById("sidebar-trash");
+  if(!trashItems.length){sec.style.display="none";return}
+  sec.style.display="";
+  document.getElementById("trash-count").textContent=trashItems.length;
+  wrap.innerHTML="";
+  trashItems.forEach(t=>{
+    const el=document.createElement("div");
+    el.className="trash-mini-item";
+    el.innerHTML=`<div class="trash-mini-name">${t.name}</div><div class="trash-mini-date">Deleted ${t.deleted_at||""}</div>`;
+    wrap.appendChild(el);
+  });
+}
+
+function renderTrash(){
+  document.getElementById("trash-subtitle").textContent=`Items: ${trashItems.length}`;
+  const wrap=document.getElementById("trash-list");
+  wrap.innerHTML="";
+  if(!trashItems.length){wrap.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg><p>Trash is empty</p></div>`;return}
+  trashItems.forEach(t=>{
+    const el=document.createElement("div");
+    el.className="file-card fade-in";
+    el.innerHTML=`
+      <div class="file-card-header">
+        <div class="file-card-info">
+          <div class="file-card-name">${svgFile()}<span>${t.name}</span></div>
+          <div class="file-meta">
+            <span><span class="key">Path: </span>${t.path}</span>
+            <span><span class="key">Deleted by: </span>${t.deleted_by||"—"}</span>
+            <span><span class="key">Deleted at: </span>${t.deleted_at||"—"}</span>
+          </div>
+        </div>
+        <div class="file-actions">
+          <button class="icon-btn restore" title="Restore" data-id="${t.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+          </button>
+          <button class="icon-btn perma" title="Delete permanently" data-id="${t.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </div>`;
+    wrap.appendChild(el);
+  });
+  wrap.querySelectorAll(".icon-btn.restore").forEach(b=>b.addEventListener("click",()=>restoreFile(b.dataset.id)));
+  wrap.querySelectorAll(".icon-btn.perma").forEach(b=>b.addEventListener("click",()=>permanentDelete(b.dataset.id)));
+}
+
+async function restoreFile(id){
+  const r=await api("POST",`/files/${id}/restore`);
+  if(r.success){toast("File restored");await loadFiles();await loadTrash();renderTrash();}
+  else toast(r.error,"error");
+}
+
+async function permanentDelete(id){
+  if(!confirm("Permanently delete? This cannot be undone."))return;
+  const r=await api("DELETE",`/files/${id}/permanent`);
+  if(r.success){toast("Permanently deleted");await loadTrash();renderTrash();}
+  else toast(r.error,"error");
+}
+
+/* ─────────────────────────────────────────────
+   SETTINGS
+───────────────────────────────────────────── */
+async function loadSettings(){
+  const [sr,ur]=await Promise.all([api("GET","/system/status"),api("GET","/users")]);
+  if(sr.success){
+    document.getElementById("stat-grid").innerHTML=`
+      <div class="stat-card"><div class="label">Total Files</div><div class="value">${sr.total_files}</div></div>
+      <div class="stat-card"><div class="label">Trash Items</div><div class="value">${sr.trash_count}</div></div>
+      <div class="stat-card"><div class="label">Log Events</div><div class="value">${sr.log_count}</div></div>
+      <div class="stat-card"><div class="label">Users</div><div class="value">${sr.user_count}</div></div>`;
+  }
+  if(ur.success){
+    const wrap=document.getElementById("users-list");
+    wrap.innerHTML="";
+    ur.users.forEach(u=>{
+      const el=document.createElement("div");
+      el.className="user-row";
+      el.innerHTML=`
+        <div><div class="uname">${u.username}</div><div class="role-badge ${u.role}">${u.role}</div></div>
+        <div class="udate">Since ${u.created_at?.split("T")[0]||"—"}</div>`;
+      wrap.appendChild(el);
+    });
+  }
+}
+
+/* ─────────────────────────────────────────────
+   STORAGE BAR
+───────────────────────────────────────────── */
+function updateStorage(){
+  const total=1000*1024;
+  const used=files.reduce((s,f)=>s+(f.size||0),0);
+  const pct=Math.min((used/total)*100,100).toFixed(1);
+  document.getElementById("storage-fill").style.width=pct+"%";
+  document.getElementById("storage-text").textContent=`${fmt(used)} / 1000 KB`;
+}
+</script>
+</body>
+</html>
